@@ -1,14 +1,5 @@
+import streamlit as str_lit
 import streamlit as st
-
-# Tenta importar o RDKit para desenhar as estruturas geométricas
-try:
-    from rdkit import Chem
-    from rdkit.Chem import Draw
-    import base64
-    from io import BytesIO
-    RDKIT_AVAILABLE = True
-except ImportError:
-    RDKIT_AVAILABLE = False
 
 # ============================================
 # CONFIGURAÇÃO DA PÁGINA E CSS
@@ -28,40 +19,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================
-# FUNÇÃO GERADORA DE REAÇÕES GEOMÉTRICAS (RDKIT)
+# FUNÇÃO DE RENDERIZAÇÃO VIA PUBCHEM (SEM RDKIT)
 # ============================================
 def visualizar_reacao(smiles_reagente, texto_seta, smiles_produto, legenda_reagente, legenda_produto):
-    if not RDKIT_AVAILABLE:
-        st.warning("⚠️ Instale o RDKit (`pip install rdkit`) para visualizar as fórmulas estruturais geométricas (em bastão).")
-        return
-
-    def get_img_b64(smiles):
-        mol = Chem.MolFromSmiles(smiles)
-        if mol:
-            # Configuração de desenho em alta qualidade
-            d2d = Draw.MolDraw2DCairo(300, 200)
-            opts = d2d.drawOptions()
-            opts.clearBackground = False
-            opts.bondLineWidth = 2
-            d2d.DrawMolecule(mol)
-            d2d.FinishDrawing()
-            img_bytes = d2d.GetDrawingText()
-            return base64.b64encode(img_bytes).decode()
-        return ""
-
-    img_reag = get_img_b64(smiles_reagente)
-    img_prod = get_img_b64(smiles_produto)
+    # URLs oficiais públicas do PubChem para gerar estruturas químicas em PNG
+    url_reag = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/PNG?smiles={smiles_reagente}&image_size=300x200"
+    url_prod = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/PNG?smiles={smiles_produto}&image_size=300x200"
 
     st.markdown("<div style='background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-top: 10px;'>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
-        if img_reag:
-            st.markdown(f"<div style='text-align: center;'><img src='data:image/png;base64,{img_reag}' width='100%'><br><b style='color:#334155;'>{legenda_reagente}</b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center;'><img src='{url_reag}' width='100%' style='background:white; border-radius:4px;'><br><b style='color:#334155;'>{legenda_reagente}</b></div>", unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<div style='text-align: center; margin-top: 35%; font-size: 1.1rem; color:#64748b;'><b>{texto_seta}</b><br><span style='font-size:2rem; color:#3b82f6;'>&#10142;</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; margin-top: 30%; font-size: 1.05rem; color:#64748b;'><b>{texto_seta}</b><br><span style='font-size:2rem; color:#3b82f6;'>&#10142;</span></div>", unsafe_allow_html=True)
     with col3:
-        if img_prod:
-            st.markdown(f"<div style='text-align: center;'><img src='data:image/png;base64,{img_prod}' width='100%'><br><b style='color:#334155;'>{legenda_produto}</b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center;'><img src='{url_prod}' width='100%' style='background:white; border-radius:4px;'><br><b style='color:#334155;'>{legenda_produto}</b></div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ============================================
@@ -94,21 +66,14 @@ with tab1:
     
     if tipo_subst == "Alcanos (Halogenação)":
         st.markdown("### Halogenação do Propano")
-        st.markdown("Em alcanos maiores que o etano, ocorre a formação de isômeros. O hidrogênio do carbono secundário é substituído com maior facilidade[cite: 1].")
+        st.markdown("Em alcanos maiores, ocorre a formação de isômeros. O hidrogênio do carbono secundário é substituído com maior facilidade[cite: 1].")
         st.latex(r"H_3C-CH_2-CH_3 + Cl_2 \xrightarrow{\text{luz/calor}} H_3C-CHCl-CH_3 + HCl")
         
-        # Representação Geométrica (SMILES)
-        visualizar_reacao(
-            smiles_reagente="CCC", 
-            texto_seta="+ Cl₂ (Luz/Calor)", 
-            smiles_produto="CC(Cl)C", 
-            legenda_reagente="Propano", 
-            legenda_produto="2-cloropropano (Produto Principal)"
-        )
+        visualizar_reacao("CCC", "+ Cl₂ (Luz/Calor)", "CC(Cl)C", "Propano", "2-cloropropano (Produto Principal)")
             
     else:
         st.markdown("### Substituição Eletrofílica Aromática")
-        st.markdown("O anel benzênico possui ressonância (compartilhamento de elétrons em nuvem) que o torna muito estável[cite: 2]. O eletrófilo ataca o anel substituindo um Hidrogênio[cite: 3].")
+        st.markdown("O anel benzênico possui ressonância que o torna muito estável[cite: 2]. O eletrófilo ataca o anel substituindo um Hidrogênio[cite: 3].")
         
         reacao_arom = st.selectbox("Selecione a Reação no Benzeno:", ["Halogenação (Cloração)", "Nitração", "Alquilação"])
         
@@ -168,14 +133,14 @@ with tab3:
     
     st.markdown("""
     <div class="concept-box">
-    A oxidação de carbono em compostos orgânicos é facilmente identificada pelo <b>aumento do número de ligações com oxigênio</b> (ou diminuição de hidrogênios)[cite: 8]. Utilizam-se oxidantes fortes como $K_2Cr_2O_7$ ou $KMnO_4$[cite: 9].
+    A oxidação de carbono em compostos orgânicos é identificada pelo <b>aumento do número de ligações com oxigênio</b> (ou perda de hidrogênios)[cite: 8]. Utilizam-se oxidantes como $K_2Cr_2O_7$ ou $KMnO_4$[cite: 9].
     </div>
     """, unsafe_allow_html=True)
     
     tipo_alcool = st.selectbox("Selecione o nível de oxidação:", ["Álcool Primário (Dupla oxidação)", "Álcool Secundário (Oxidação única)"])
     
     if tipo_alcool == "Álcool Primário (Dupla oxidação)":
-        st.markdown("O etanol sofre oxidação perdendo hidrogênios para formar um aldeído, e em seguida adquire oxigênio formando ácido carboxílico[cite: 9].")
+        st.markdown("O etanol sofre oxidação formando um aldeído, e em seguida adquire oxigênio formando ácido carboxílico[cite: 9].")
         st.latex(r"H_3C-CH_2-OH \xrightarrow{[O]} H_3C-C(=O)H \xrightarrow{[O]} H_3C-COOH")
         
         col_ox1, col_ox2 = st.columns(2)
@@ -185,7 +150,7 @@ with tab3:
             visualizar_reacao("CC=O", "[O] (2ª Etapa)", "CC(=O)O", "Etanal", "Ácido Acético/Etanoico")
             
     else:
-        st.markdown("Álcoois secundários oxidam-se apenas até o estágio de cetona (o carbono da hidroxila não tem mais hidrogênios para perder)[cite: 9].")
+        st.markdown("Álcoois secundários oxidam-se apenas até o estágio de cetona[cite: 9].")
         st.latex(r"H_3C-CH(OH)-CH_3 \xrightarrow{KMnO_4, H_2SO_4} H_3C-CO-CH_3 + H_2O")
         visualizar_reacao("CC(O)C", "[O]", "CC(=O)C", "Propan-2-ol", "Propanona (Cetona)")
 
@@ -203,21 +168,20 @@ with tab4:
     if reacao_sintese == "Esterificação (Ácido + Álcool)":
         st.markdown("""
         <div class="concept-box">
-        Reação reversível formadora de fragrâncias e flavorizantes (frutas/flores)[cite: 10].<br>
+        Reação reversível formadora de fragrâncias e flavorizantes[cite: 10].<br>
         <b>Ácido Carboxílico + Álcool $\rightleftharpoons$ Éster + Água</b>
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("**Síntese do Essência de Maçã (Butanoato de Metila)**[cite: 10]")
+        st.markdown("**Síntese da Essência de Maçã (Butanoato de Metila)**[cite: 10]")
         st.latex(r"H_3C-(CH_2)_2-COOH + HO-CH_3 \xrightarrow{H^+} H_3C-(CH_2)_2-COO-CH_3 + H_2O")
         
-        # Como o layout da reação só recebe 1 reagente e 1 produto visualmente, juntamos as strings SMILES
-        visualizar_reacao("CCCC(=O)O.CO", "Catalisador Ácido (H⁺)", "CCCC(=O)OC", "Ácido Butanoico + Metanol", "Butanoato de Metila")
+        visualizar_reacao("CCCC(=O)O", "Catalisador Ácido (H⁺) + Metanol", "CCCC(=O)OC", "Ácido Butanoico", "Butanoato de Metila")
         
     else:
         st.markdown("""
         <div class="alert-box">
-        As reações de eliminação são o inverso exato das reações de adição. Ocorrem com retirada de moléculas pequenas (como H2O) formando insaturações[cite: 7].
+        As reações de eliminação são o inverso exato das adições, com retirada de moléculas pequenas como $H_2O$[cite: 7].
         </div>
         """, unsafe_allow_html=True)
         
