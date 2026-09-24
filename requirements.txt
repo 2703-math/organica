@@ -1,3 +1,6 @@
 streamlit
-numpy
+rdkit-pypi
 plotly
+pandas
+numpy
+fastf1
