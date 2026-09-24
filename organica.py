@@ -1,46 +1,80 @@
 import streamlit as st
 
-# ============================================
-# CONFIGURAÇÃO DA PÁGINA
-# ============================================
-st.set_page_config(
-    page_title="Reações Orgânicas Interativas",
-    page_icon="🧪",
-    layout="wide"
-)
+# Tenta importar o RDKit para desenhar as estruturas geométricas
+try:
+    from rdkit import Chem
+    from rdkit.Chem import Draw
+    import base64
+    from io import BytesIO
+    RDKIT_AVAILABLE = True
+except ImportError:
+    RDKIT_AVAILABLE = False
 
 # ============================================
-# CSS PROFISSIONAL 
+# CONFIGURAÇÃO DA PÁGINA E CSS
 # ============================================
+st.set_page_config(page_title="Reações Orgânicas Visuais", page_icon="🧪", layout="wide")
+
 st.markdown("""
 <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
     .stApp {background-color: #f8fafc;}
     .dashboard-card {background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); margin-bottom: 1.5rem;}
     .concept-box {background: #f1f5f9; border-left: 4px solid #3b82f6; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 1.05rem;}
     .alert-box {background: #fffbeb; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;}
-    .success-box {background: #f0fdf4; border-left: 4px solid #10b981; padding: 1rem; border-radius: 4px;}
-    .main-title {font-size: 2.4rem; font-weight: 800; color: #0f172a; text-align: center; margin-bottom: 0.2rem;}
+    .main-title {font-size: 2.2rem; font-weight: 800; color: #0f172a; text-align: center; margin-bottom: 0.2rem;}
     .subtitle {font-size: 1.1rem; color: #64748b; text-align: center; margin-bottom: 2rem;}
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================
-# TÍTULO PRINCIPAL
+# FUNÇÃO GERADORA DE REAÇÕES GEOMÉTRICAS (RDKIT)
 # ============================================
-st.markdown('<div class="main-title">🧪 Laboratório de Reações Orgânicas</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Estudo interativo de Substituição, Adição, Eliminação e Oxirredução</div>', unsafe_allow_html=True)
+def visualizar_reacao(smiles_reagente, texto_seta, smiles_produto, legenda_reagente, legenda_produto):
+    if not RDKIT_AVAILABLE:
+        st.warning("⚠️ Instale o RDKit (`pip install rdkit`) para visualizar as fórmulas estruturais geométricas (em bastão).")
+        return
+
+    def get_img_b64(smiles):
+        mol = Chem.MolFromSmiles(smiles)
+        if mol:
+            # Configuração de desenho em alta qualidade
+            d2d = Draw.MolDraw2DCairo(300, 200)
+            opts = d2d.drawOptions()
+            opts.clearBackground = False
+            opts.bondLineWidth = 2
+            d2d.DrawMolecule(mol)
+            d2d.FinishDrawing()
+            img_bytes = d2d.GetDrawingText()
+            return base64.b64encode(img_bytes).decode()
+        return ""
+
+    img_reag = get_img_b64(smiles_reagente)
+    img_prod = get_img_b64(smiles_produto)
+
+    st.markdown("<div style='background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-top: 10px;'>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([2, 1, 2])
+    with col1:
+        if img_reag:
+            st.markdown(f"<div style='text-align: center;'><img src='data:image/png;base64,{img_reag}' width='100%'><br><b style='color:#334155;'>{legenda_reagente}</b></div>", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"<div style='text-align: center; margin-top: 35%; font-size: 1.1rem; color:#64748b;'><b>{texto_seta}</b><br><span style='font-size:2rem; color:#3b82f6;'>&#10142;</span></div>", unsafe_allow_html=True)
+    with col3:
+        if img_prod:
+            st.markdown(f"<div style='text-align: center;'><img src='data:image/png;base64,{img_prod}' width='100%'><br><b style='color:#334155;'>{legenda_produto}</b></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ============================================
-# ABAS DE NAVEGAÇÃO
+# TÍTULO PRINCIPAL E ABAS
 # ============================================
+st.markdown('<div class="main-title">🧪 Laboratório de Reações Orgânicas Visuais</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Estudo interativo unindo fórmulas químicas e projeções geométricas de ligações</div>', unsafe_allow_html=True)
+
 tab1, tab2, tab3, tab4 = st.tabs([
     "🔄 Substituição", 
     "➕ Adição & Regras", 
     "🔥 Oxirredução", 
-    "⚗️ Esterificação & Desidratação"
+    "⚗️ Esterificação"
 ])
 
 # ============================================
@@ -48,202 +82,148 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # ============================================
 with tab1:
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.subheader("Reações de Substituição")
+    st.subheader("Reações de Substituição (Alcanos e Aromáticos)")
     
     st.markdown("""
     <div class="concept-box">
-    <b>Definição:</b> São processos químicos onde substituímos (trocamos) um ou mais átomos (ou grupos) por outros[cite: 1]. São muito características de substâncias pouco reativas, como os alcanos (derivados do petróleo) e os aromáticos[cite: 1].
+    <b>Definição:</b> Processos onde substituímos um ou mais átomos por outros[cite: 1]. Típicos de moléculas muito estáveis (pouco reativas) como alcanos e anéis benzênicos[cite: 1].
     </div>
     """, unsafe_allow_html=True)
     
-    tipo_subst = st.radio("Escolha a classe do composto:", ["Alcanos (Saturados)", "Aromáticos (Benzeno e Derivados)"], horizontal=True)
+    tipo_subst = st.radio("Escolha a classe do composto:", ["Alcanos (Halogenação)", "Aromáticos (Benzeno)"], horizontal=True)
     
-    if tipo_subst == "Alcanos (Saturados)":
-        st.markdown("### Halogenação por Radicais Livres")
-        st.markdown("Os alcanos só reagem em condições muito energéticas (luz ou calor)[cite: 1]. A reação com halogênios (família 7A: $F_2, Cl_2, Br_2$) ocorre por radicais livres[cite: 1].")
+    if tipo_subst == "Alcanos (Halogenação)":
+        st.markdown("### Halogenação do Propano")
+        st.markdown("Em alcanos maiores que o etano, ocorre a formação de isômeros. O hidrogênio do carbono secundário é substituído com maior facilidade[cite: 1].")
+        st.latex(r"H_3C-CH_2-CH_3 + Cl_2 \xrightarrow{\text{luz/calor}} H_3C-CHCl-CH_3 + HCl")
         
-        ex_alcano = st.selectbox("Selecione o exemplo:", ["Metano (Monocloração)", "Propano (Cloração isomérica)"])
-        
-        if ex_alcano == "Metano (Monocloração)":
-            st.latex(r"CH_4 + Cl_2 \xrightarrow{\text{luz/calor}} H_3C-Cl + HCl")
-            st.caption("Ocorre uma reação de substituição de um átomo de H por um átomo de Cl[cite: 1].")
-        else:
-            st.latex(r"H_3C-CH_2-CH_3 + Cl_2 \xrightarrow{\text{luz}} \text{Mistura de Isômeros}")
-            st.markdown("Pode resultar na substituição no carbono 1 ou no carbono 2[cite: 1]:")
-            st.latex(r"\text{1-cloropropano: } H_3C-CH_2-CH_2-Cl \quad \text{ou} \quad \text{2-cloropropano: } H_3C-CHCl-CH_3")
+        # Representação Geométrica (SMILES)
+        visualizar_reacao(
+            smiles_reagente="CCC", 
+            texto_seta="+ Cl₂ (Luz/Calor)", 
+            smiles_produto="CC(Cl)C", 
+            legenda_reagente="Propano", 
+            legenda_produto="2-cloropropano (Produto Principal)"
+        )
             
     else:
-        st.markdown("### Substituição Eletrofílica em Aromáticos")
-        st.markdown("O anel benzênico possui ressonância (compartilhamento simultâneo de seis elétrons) que o torna muito estável e blindado[cite: 2]. O agente que ataca o anel é um eletrófilo ($E^+$), que tem afinidade por elétrons[cite: 3].")
+        st.markdown("### Substituição Eletrofílica Aromática")
+        st.markdown("O anel benzênico possui ressonância (compartilhamento de elétrons em nuvem) que o torna muito estável[cite: 2]. O eletrófilo ataca o anel substituindo um Hidrogênio[cite: 3].")
         
-        col_arom1, col_arom2 = st.columns([1, 1])
-        with col_arom1:
-            reacao_arom = st.selectbox("Selecione a Reação:", ["Halogenação", "Nitração", "Alquilação", "Sulfonação"])
+        reacao_arom = st.selectbox("Selecione a Reação no Benzeno:", ["Halogenação (Cloração)", "Nitração", "Alquilação"])
+        
+        if reacao_arom == "Halogenação (Cloração)":
+            st.latex(r"C_6H_6 + Cl_2 \xrightarrow{AlCl_3} C_6H_5Cl + HCl")
+            visualizar_reacao("c1ccccc1", "+ Cl₂ (Cat. AlCl₃)", "Clc1ccccc1", "Benzeno", "Clorobenzeno")
             
-            if reacao_arom == "Halogenação":
-                st.markdown("**Reagente:** $X_2$ ($Cl_2$ ou $Br_2$) | **Catalisador:** $FeX_3$ ou $AlX_3$[cite: 3]")
-                st.latex(r"C_6H_6 + Cl_2 \xrightarrow{AlCl_3} C_6H_5Cl \text{ (clorobenzeno)} + HCl")
-            elif reacao_arom == "Nitração":
-                st.markdown("**Reagente:** Ácido Nítrico ($HNO_3$) | **Catalisador:** $H_2SO_4$[cite: 3]")
-                st.latex(r"C_6H_6 + HO-NO_2 \xrightarrow{H_2SO_4} C_6H_5NO_2 \text{ (nitrobenzeno)} + H_2O")
-            elif reacao_arom == "Alquilação":
-                st.markdown("**Reagente:** Halogeneto de Alquila ($R-X$) | **Catalisador:** $FeX_3, AlX_3$[cite: 3]")
-                st.latex(r"C_6H_6 + Cl-CH_3 \xrightarrow{AlCl_3} C_6H_5CH_3 \text{ (tolueno)} + HCl")
-            elif reacao_arom == "Sulfonação":
-                st.markdown("**Reagente:** Ácido Sulfúrico concentrado ($H_2SO_4 / SO_3$)[cite: 3]")
-                st.latex(r"C_6H_6 + HO-SO_3H \xrightarrow{\Delta} C_6H_5SO_3H \text{ (ácido benzenossulfônico)} + H_2O")
-                
-        with col_arom2:
-            st.markdown("""
-            <div class="alert-box">
-            <b>Orientação de Substituintes (Dirigentes):</b><br>
-            Se o anel já tiver um grupo ligado, ele direciona o próximo ataque[cite: 4]:<br>
-            • <b>Ortoparadirigentes (G):</b> Cedem elétrons (ex: -OH, -CH3). O ataque ocorre nas posições <i>orto</i> e <i>para</i>[cite: 4].<br>
-            • <b>Metadirigentes (G'):</b> Retiram elétrons (ex: -NO2). O ataque ocorre na posição <i>meta</i>[cite: 4].
-            </div>
-            """, unsafe_allow_html=True)
-            if reacao_arom == "Nitração":
-                st.info("Exemplo Clássico: A trinitração do Tolueno gera o explosivo TNT (Trinitrotolueno)[cite: 4].")
+        elif reacao_arom == "Nitração":
+            st.latex(r"C_6H_6 + HNO_3 \xrightarrow{H_2SO_4} C_6H_5NO_2 + H_2O")
+            visualizar_reacao("c1ccccc1", "+ HNO₃ (H₂SO₄)", "O=[N+]([O-])c1ccccc1", "Benzeno", "Nitrobenzeno")
+            
+        elif reacao_arom == "Alquilação":
+            st.latex(r"C_6H_6 + CH_3Cl \xrightarrow{AlCl_3} C_6H_5CH_3 + HCl")
+            visualizar_reacao("c1ccccc1", "+ CH₃Cl (AlCl₃)", "Cc1ccccc1", "Benzeno", "Tolueno (Metilbenzeno)")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ============================================
-# ABA 2: REAÇÕES DE ADIÇÃO E TESTES
+# ABA 2: REAÇÕES DE ADIÇÃO
 # ============================================
 with tab2:
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
     st.subheader("Reações de Adição em Insaturados")
     
-    st.markdown("""
-    <div class="concept-box">
-    <b>Definição:</b> Acontece em hidrocarbonetos insaturados (alcenos e alcinos). A ligação dupla ou tripla é rompida (reação de adição) para a entrada de novos átomos[cite: 5].
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col_ad1, col_ad2 = st.columns([1.5, 1])
+    col_ad1, col_ad2 = st.columns([1, 1])
     
     with col_ad1:
-        st.markdown("### Regra de Markovnikoff")
         st.markdown("""
         <div class="alert-box">
-        Na adição de uma substância do tipo H-B (como HCl ou H2O) a hidrocarbonetos insaturados, o átomo de hidrogênio (H) liga-se ao carbono insaturado <b>mais hidrogenado</b>[cite: 6].
+        <b>Regra de Markovnikoff:</b> Na adição de moléculas do tipo H-B (ex: HBr, H2O) a uma dupla ligação, o átomo de Hidrogênio liga-se ao carbono da dupla que já possui <b>mais hidrogênios</b>[cite: 6].
         </div>
         """, unsafe_allow_html=True)
+        st.markdown("#### Hidrohalogenação do Propeno")
+        st.latex(r"H_3C-CH=CH_2 + HBr \rightarrow H_3C-CHBr-CH_3")
         
-        ex_adicao = st.selectbox("Simular Adição ao Propeno ($H_3C-CH=CH_2$):", ["Adição de HBr (Hidrohalogenação)", "Adição de H2O (Hidratação)"])
-        
-        if ex_adicao == "Adição de HBr (Hidrohalogenação)":
-            st.latex(r"H_3C-CH=CH_2 + H-Br \rightarrow H_3C-CHBr-CH_3")
-            st.caption("Produto Principal: 2-bromopropano (O hidrogênio vai para a extremidade CH2)[cite: 6].")
-        else:
-            st.latex(r"H_3C-CH=CH_2 + H-OH \xrightarrow{H_2SO_4} H_3C-CH(OH)-CH_3")
-            st.caption("Produto Principal: propan-2-ol[cite: 6].")
-
     with col_ad2:
-        st.markdown("### 🧪 Laboratório de Testes Visuais")
-        st.markdown("Testes clássicos para diferenciar compostos reativos (insaturados) de compostos pouco reativos (alcanos/aromáticos)[cite: 6].")
+        st.markdown("#### Teste do Bromo (Identificação visual)")
+        st.markdown("Usado para identificar ligações duplas (descoramento imediato do líquido castanho do $Br_2$)[cite: 7].")
+        st.latex(r"H_2C=CH_2 + Br_2 \rightarrow Br-CH_2-CH_2-Br")
         
-        teste = st.radio("Selecione o Teste Químico:", ["Teste de Baeyer (KMnO4)", "Teste do Bromo (Br2)"])
-        
-        if teste == "Teste de Baeyer (KMnO4)":
-            st.markdown("""
-            <div class="success-box">
-            <b>Reagente:</b> Permanganato de Potássio ($KMnO_4$) diluído, de forte coloração violeta[cite: 6].<br><br>
-            <b>Teste Positivo (Insaturado):</b> A solução descolore (fica incolor/marrom), indicando a oxidação da dupla[cite: 6].<br>
-            <b>Teste Negativo (Saturado/Aromático):</b> A solução continua violeta (não há reação)[cite: 6].
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="success-box">
-            <b>Reagente:</b> Solução de Bromo ($Br_2 / CCl_4$), líquido castanho[cite: 7].<br><br>
-            <b>Teste Positivo:</b> Descoramento imediato do líquido castanho ao quebrar a dupla ligação (adição do $Br_2$)[cite: 7].
-            </div>
-            """, unsafe_allow_html=True)
+    st.markdown("### Representações Geométricas das Adições")
+    ex_adicao = st.radio("Selecione a reação geométrica:", ["Adição de HBr (Markovnikoff)", "Bromação do Eteno (Teste de Laboratório)"], horizontal=True)
+    
+    if ex_adicao == "Adição de HBr (Markovnikoff)":
+        visualizar_reacao("C=CC", "+ HBr", "CC(Br)C", "Propeno (Carbono terminal mais hidrogenado)", "2-bromopropano")
+    else:
+        visualizar_reacao("C=C", "+ Br₂", "BrCCBr", "Eteno", "1,2-dibromoetano")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ============================================
-# ABA 3: OXIDAÇÃO E REDUÇÃO
+# ABA 3: OXIDAÇÃO DE ÁLCOOIS
 # ============================================
 with tab3:
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.subheader("Oxirredução de Compostos Orgânicos")
+    st.subheader("Processos de Oxirredução")
     
-    col_ox1, col_ox2 = st.columns([1, 1.5])
+    st.markdown("""
+    <div class="concept-box">
+    A oxidação de carbono em compostos orgânicos é facilmente identificada pelo <b>aumento do número de ligações com oxigênio</b> (ou diminuição de hidrogênios)[cite: 8]. Utilizam-se oxidantes fortes como $K_2Cr_2O_7$ ou $KMnO_4$[cite: 9].
+    </div>
+    """, unsafe_allow_html=True)
     
-    with col_ox1:
-        st.markdown("### Agentes Comuns")
-        st.markdown("**Oxidantes [O]** (roubam elétrons): $K_2Cr_2O_7$, $KMnO_4$, $O_3$, $H_2O_2$[cite: 8].")
-        st.markdown("**Redutores [H]** (doam elétrons): $LiAlH_4$, $NaBH_4$, $H_2$[cite: 8].")
+    tipo_alcool = st.selectbox("Selecione o nível de oxidação:", ["Álcool Primário (Dupla oxidação)", "Álcool Secundário (Oxidação única)"])
+    
+    if tipo_alcool == "Álcool Primário (Dupla oxidação)":
+        st.markdown("O etanol sofre oxidação perdendo hidrogênios para formar um aldeído, e em seguida adquire oxigênio formando ácido carboxílico[cite: 9].")
+        st.latex(r"H_3C-CH_2-OH \xrightarrow{[O]} H_3C-C(=O)H \xrightarrow{[O]} H_3C-COOH")
         
-        st.markdown("""
-        <div class="alert-box">
-        <b>Antioxidantes:</b> Compostos (como a Vitamina C e E) que doam elétrons vigorosamente. São "materiais de sacrifício" que sofrem oxidação para preservar outras células e alimentos[cite: 9].
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col_ox2:
-        st.markdown("### Oxidação de Álcoois")
-        st.markdown("O aumento de ligações com oxigênio é a principal evidência da oxidação do carbono[cite: 8].")
-        
-        tipo_alcool = st.selectbox("Selecione a oxidação de qual tipo de álcool?", ["Álcool Primário", "Álcool Secundário", "Álcool Terciário"])
-        
-        if tipo_alcool == "Álcool Primário":
-            st.latex(r"\text{Etanol} \xrightarrow{[O]} \text{Etanal (Aldeído)} \xrightarrow{[O]} \text{Ácido Acético}")
-            st.caption("Pode ter uma ou duas oxidações dependendo da temperatura e força do oxidante[cite: 9].")
-        elif tipo_alcool == "Álcool Secundário":
-            st.latex(r"\text{Propan-2-ol} \xrightarrow{KMnO_4, H_2SO_4} \text{Propanona (Cetona)}")
-            st.caption("A oxidação para na cetona[cite: 9].")
-        else:
-            st.latex(r"\text{2-metilpropan-2-ol} \xrightarrow{[O]} \text{NÃO OCORRE REAÇÃO}")
-            st.caption("Álcoois terciários são resistentes e não oxidam sob condições usuais[cite: 9].")
+        col_ox1, col_ox2 = st.columns(2)
+        with col_ox1:
+            visualizar_reacao("CCO", "[O] (1ª Etapa)", "CC=O", "Etanol (Álcool)", "Etanal (Aldeído)")
+        with col_ox2:
+            visualizar_reacao("CC=O", "[O] (2ª Etapa)", "CC(=O)O", "Etanal", "Ácido Acético/Etanoico")
+            
+    else:
+        st.markdown("Álcoois secundários oxidam-se apenas até o estágio de cetona (o carbono da hidroxila não tem mais hidrogênios para perder)[cite: 9].")
+        st.latex(r"H_3C-CH(OH)-CH_3 \xrightarrow{KMnO_4, H_2SO_4} H_3C-CO-CH_3 + H_2O")
+        visualizar_reacao("CC(O)C", "[O]", "CC(=O)C", "Propan-2-ol", "Propanona (Cetona)")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ============================================
-# ABA 4: SÍNTESE (ESTERIFICAÇÃO) E ELIMINAÇÃO
+# ABA 4: ESTERIFICAÇÃO E DESIDRATAÇÃO
 # ============================================
 with tab4:
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.subheader("Síntese Orgânica Básica")
+    st.subheader("Síntese: Esterificação e Eliminação")
     
-    col_e1, col_e2 = st.columns([1, 1])
+    reacao_sintese = st.radio("Selecione a síntese geométrica:", ["Esterificação (Ácido + Álcool)", "Desidratação Intramolecular (Formação de Dupla)"], horizontal=True)
     
-    with col_e1:
-        st.markdown("### Reação de Esterificação")
+    if reacao_sintese == "Esterificação (Ácido + Álcool)":
         st.markdown("""
         <div class="concept-box">
-        <b>Ácido Carboxílico + Álcool $\rightleftharpoons$ Éster + Água</b><br>
-        Os ésteres são compostos aromáticos famosos pelos odores agradáveis de frutas e flores[cite: 10]. A reação é reversível (a volta é chamada de hidrólise)[cite: 10].
+        Reação reversível formadora de fragrâncias e flavorizantes (frutas/flores)[cite: 10].<br>
+        <b>Ácido Carboxílico + Álcool $\rightleftharpoons$ Éster + Água</b>
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("**Exemplo: Odor de Maçã (Butanoato de metila)**[cite: 10]")
-        st.latex(r"H_3C-CH_2-CH_2-COOH + HO-CH_3 \xrightarrow{H_2SO_4, \Delta} H_3C-(CH_2)_2-COO-CH_3 + H_2O")
+        st.markdown("**Síntese do Essência de Maçã (Butanoato de Metila)**[cite: 10]")
+        st.latex(r"H_3C-(CH_2)_2-COOH + HO-CH_3 \xrightarrow{H^+} H_3C-(CH_2)_2-COO-CH_3 + H_2O")
         
-        st.markdown("**Exemplo: Odor de Abacaxi (Butanoato de etila)**[cite: 10]")
-        st.latex(r"H_3C-CH_2-CH_2-COOH + HO-CH_2-CH_3 \rightleftharpoons \text{Éster} + H_2O")
-
-    with col_e2:
-        st.markdown("### Reações de Eliminação (Desidratação)")
-        st.markdown("Ocorrem de forma exatamente inversa às adições[cite: 7]. O ácido sulfúrico ($H_2SO_4$) atua como poderoso agente desidratante[cite: 8].")
+        # Como o layout da reação só recebe 1 reagente e 1 produto visualmente, juntamos as strings SMILES
+        visualizar_reacao("CCCC(=O)O.CO", "Catalisador Ácido (H⁺)", "CCCC(=O)OC", "Ácido Butanoico + Metanol", "Butanoato de Metila")
         
-        tipo_des = st.radio("Tipos de Desidratação de Álcoois:", ["Intramolecular", "Intermolecular"])
+    else:
+        st.markdown("""
+        <div class="alert-box">
+        As reações de eliminação são o inverso exato das reações de adição. Ocorrem com retirada de moléculas pequenas (como H2O) formando insaturações[cite: 7].
+        </div>
+        """, unsafe_allow_html=True)
         
-        if tipo_des == "Intramolecular":
-            st.markdown("Ocorre dentro da mesma molécula sob temperaturas elevadas ($170^\circ C$)[cite: 7]. **Forma Alcenos.**")
-            st.latex(r"H_3C-CH_2-OH \xrightarrow{170^\circ C, H_2SO_4} H_2C=CH_2 \text{ (eteno)} + H_2O")
-        else:
-            st.markdown("Ocorre entre duas moléculas de álcool sob temperaturas um pouco menores ($140^\circ C$)[cite: 8]. **Forma Éteres.**")
-            st.latex(r"2 \times H_3C-CH_2-OH \xrightarrow{H_2SO_4} H_3C-CH_2-O-CH_2-CH_3 \text{ (éter dietílico)} + H_2O")
+        st.markdown("**Desidratação do Etanol sob $170^\circ C$ (Formação do Eteno)**[cite: 7]")
+        st.latex(r"H_3C-CH_2-OH \xrightarrow{H_2SO_4, 170^\circ C} H_2C=CH_2 + H_2O")
+        
+        visualizar_reacao("CCO", "H₂SO₄ (170°C) -H₂O", "C=C", "Etanol", "Eteno (Ligação Dupla Formada)")
 
     st.markdown('</div>', unsafe_allow_html=True)
-
-# Rodapé
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #94a3b8; font-size: 0.85rem; padding: 1rem;">
-    👨‍🔬 <b>Plataforma de Química Orgânica</b> — Baseado em materiais didáticos padronizados
-</div>
-""", unsafe_allow_html=True)
