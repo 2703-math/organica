@@ -1,6 +1,3 @@
 streamlit
-rdkit-pypi
 plotly
 pandas
-numpy
-fastf1
